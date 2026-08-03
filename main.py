@@ -330,6 +330,21 @@ def show_prompt_detail(prompts):
     print("-" * 60)
 
 
+def toggle_favorite(prompts):
+    """즐겨찾기를 켜거나 끕니다. 이미 켜져 있으면 끄고, 꺼져 있으면 켭니다."""
+    print()
+    print("[즐겨찾기 추가·해제]")
+    prompt = find_prompt_by_id(prompts, "번호: ")
+    if prompt is None:
+        return
+
+    # not을 쓰면 True는 False로, False는 True로 한 번에 뒤집힙니다.
+    prompt["favorite"] = not prompt["favorite"]
+
+    state = "추가" if prompt["favorite"] else "해제"
+    print(f"{prompt['id']}번 '{prompt['title']}' 즐겨찾기를 {state}했습니다.")
+
+
 def show_menu():
     """메인 메뉴를 출력합니다."""
     print()
@@ -369,7 +384,9 @@ def main():
                 search_prompts(prompts)
             case "5":
                 show_prompt_detail(prompts)
-            case "6" | "7":
+            case "6":
+                toggle_favorite(prompts)
+            case "7":
                 print("아직 구현되지 않은 기능입니다.")
             case _:
                 print("메뉴에 있는 번호(0~7)를 입력해주세요.")
