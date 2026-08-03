@@ -147,8 +147,9 @@ def select_category():
         if choice == "0":
             return get_non_empty_input("카테고리 이름: ")
 
-        # isdigit()으로 먼저 걸러내면 int() 변환에서 오류가 날 일이 없습니다.
-        if choice.isdigit():
+        # isdecimal()로 먼저 걸러내면 int() 변환에서 오류가 날 일이 없습니다.
+        # isdigit()은 '²' 같은 문자도 참으로 보는데 int()는 이를 변환하지 못합니다.
+        if choice.isdecimal():
             index = int(choice)
             if 1 <= index <= len(CATEGORIES):
                 return CATEGORIES[index - 1]
@@ -295,7 +296,8 @@ def find_prompt_by_id(prompts, message):
         return None
 
     number = input(message).strip()
-    if not number.isdigit():
+    # isdigit()이 아니라 isdecimal()을 쓰는 이유는 select_category()의 설명과 같습니다.
+    if not number.isdecimal():
         print("숫자로 된 번호를 입력해주세요.")
         return None
 
