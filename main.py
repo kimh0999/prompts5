@@ -97,11 +97,45 @@ def create_default_prompts():
     ]
 
 
+def show_menu():
+    """메인 메뉴를 출력합니다."""
+    print()
+    print("=" * 40)
+    print(" 프롬프트 관리 프로그램")
+    print("=" * 40)
+    print(" 1. 프롬프트 추가")
+    print(" 2. 전체 목록 보기")
+    print(" 3. 카테고리별 조회")
+    print(" 4. 키워드 검색")
+    print(" 5. 프롬프트 상세 보기")
+    print(" 6. 즐겨찾기 추가·해제")
+    print(" 7. 즐겨찾기 목록 보기")
+    print(" 0. 프로그램 종료")
+    print("=" * 40)
+
+
 def main():
     prompts = create_default_prompts()
-    print("프롬프트 관리 프로그램")
-    print(f"기본 프롬프트 {len(prompts)}개, 카테고리 {len(CATEGORIES)}개를 불러왔습니다.")
+    print(f"기본 프롬프트 {len(prompts)}개를 불러왔습니다.")
+
+    while True:
+        show_menu()
+        choice = input("번호를 선택하세요: ").strip()
+
+        match choice:
+            case "0":
+                print("프로그램을 종료합니다.")
+                break
+            case "1" | "2" | "3" | "4" | "5" | "6" | "7":
+                print("아직 구현되지 않은 기능입니다.")
+            case _:
+                print("메뉴에 있는 번호(0~7)를 입력해주세요.")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (KeyboardInterrupt, EOFError):
+        # Ctrl+C를 누르거나 입력이 끊겼을 때 오류 화면 대신 조용히 끝냅니다.
+        print()
+        print("프로그램을 종료합니다.")
