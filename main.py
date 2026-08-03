@@ -345,6 +345,20 @@ def toggle_favorite(prompts):
     print(f"{prompt['id']}번 '{prompt['title']}' 즐겨찾기를 {state}했습니다.")
 
 
+def show_favorites(prompts):
+    """즐겨찾기로 표시한 프롬프트만 모아서 보여줍니다."""
+    print()
+    print("[즐겨찾기 목록]")
+
+    found = [prompt for prompt in prompts if prompt["favorite"]]
+
+    if not found:
+        print("즐겨찾기한 프롬프트가 없습니다.")
+        return
+    print_prompt_table(found)
+    print(f"총 {len(found)}개")
+
+
 def show_menu():
     """메인 메뉴를 출력합니다."""
     print()
@@ -387,7 +401,7 @@ def main():
             case "6":
                 toggle_favorite(prompts)
             case "7":
-                print("아직 구현되지 않은 기능입니다.")
+                show_favorites(prompts)
             case _:
                 print("메뉴에 있는 번호(0~7)를 입력해주세요.")
 
