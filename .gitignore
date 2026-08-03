@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+
+# 가상 환경
+.venv/
+venv/
+
+# 편집기 설정
+.idea/
+.vscode/
+
+# 개발 도구가 만드는 로컬 상태 폴더 (프로젝트 소스가 아님)
+.bkit/
