@@ -4,6 +4,8 @@
 Python 3.10 이상에서 실행하세요.
 """
 
+import unicodedata
+
 # 결과물의 형태가 아니라 '사용 목적'을 기준으로 나눈 분류입니다.
 CATEGORIES = [
     "요약·분석",
@@ -187,6 +189,54 @@ def add_prompt(prompts):
     print(f"프롬프트가 추가되었습니다. (번호: {new_id})")
 
 
+def text_width(text):
+    """터미널에서 차지하는 칸 수를 셉니다. 한글과 한자는 한 글자가 두 칸입니다."""
+    return sum(2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1 for ch in text)
+
+
+def fit(text, width):
+    """표의 한 칸에 맞게 공백을 채우거나, 너무 길면 잘라내고 ...을 붙입니다."""
+    if text_width(text) <= width:
+        return text + " " * (width - text_width(text))
+
+    cut = ""
+    used = 0
+    for ch in text:
+        ch_width = 2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1
+        if used + ch_width > width - 3:  # ... 자리 3칸을 남겨둡니다.
+            break
+        cut += ch
+        used += ch_width
+    return cut + "..." + " " * (width - used - 3)
+
+
+def print_prompt_table(items):
+    """프롬프트 목록을 표 형태로 출력합니다.
+
+    전체 목록, 카테고리별 조회, 검색, 즐겨찾기 목록이 모두 같은 형식을 쓰기 때문에
+    함수로 분리했습니다. 이렇게 하지 않으면 같은 코드를 네 번 쓰게 됩니다.
+    """
+    print(f"{fit('번호', 4)} | {fit('즐겨찾기', 8)} | {fit('제목', 30)} | {fit('카테고리', 14)} | 대상 모델")
+    print("-" * 80)
+    for item in items:
+        favorite = "[*]" if item["favorite"] else "[ ]"
+        print(
+            f"{str(item['id']).rjust(4)} | {fit(favorite, 8)} | "
+            f"{fit(item['title'], 30)} | {fit(item['category'], 14)} | {item['model']}"
+        )
+
+
+def show_prompt_list(prompts):
+    """등록된 프롬프트 전체를 표로 보여줍니다."""
+    print()
+    print("[전체 목록]")
+    if not prompts:
+        print("등록된 프롬프트가 없습니다.")
+        return
+    print_prompt_table(prompts)
+    print(f"총 {len(prompts)}개")
+
+
 def show_menu():
     """메인 메뉴를 출력합니다."""
     print()
@@ -218,7 +268,9 @@ def main():
                 break
             case "1":
                 add_prompt(prompts)
-            case "2" | "3" | "4" | "5" | "6" | "7":
+            case "2":
+                show_prompt_list(prompts)
+            case "3" | "4" | "5" | "6" | "7":
                 print("아직 구현되지 않은 기능입니다.")
             case _:
                 print("메뉴에 있는 번호(0~7)를 입력해주세요.")
