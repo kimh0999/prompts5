@@ -254,6 +254,36 @@ def show_by_category(prompts):
     print(f"총 {len(found)}개")
 
 
+def search_prompts(prompts):
+    """제목, 목적, 내용, 태그에서 키워드를 찾습니다. 대소문자는 구분하지 않습니다."""
+    print()
+    print("[키워드 검색]")
+    keyword = get_non_empty_input("검색어: ")
+    lowered = keyword.lower()
+
+    found = []
+    for prompt in prompts:
+        # 검색 대상 네 곳을 한 덩어리로 합친 뒤 소문자로 바꿔 한 번에 비교합니다.
+        target = " ".join(
+            [
+                prompt["title"],
+                prompt["purpose"],
+                prompt["content"],
+                " ".join(prompt["tags"]),
+            ]
+        ).lower()
+        if lowered in target:
+            found.append(prompt)
+
+    print()
+    print(f"검색어: {keyword}")
+    if not found:
+        print("검색 결과가 없습니다.")
+        return
+    print_prompt_table(found)
+    print(f"총 {len(found)}개")
+
+
 def show_menu():
     """메인 메뉴를 출력합니다."""
     print()
@@ -289,7 +319,9 @@ def main():
                 show_prompt_list(prompts)
             case "3":
                 show_by_category(prompts)
-            case "4" | "5" | "6" | "7":
+            case "4":
+                search_prompts(prompts)
+            case "5" | "6" | "7":
                 print("아직 구현되지 않은 기능입니다.")
             case _:
                 print("메뉴에 있는 번호(0~7)를 입력해주세요.")
