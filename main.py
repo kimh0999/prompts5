@@ -131,6 +131,29 @@ def get_multiline_input(message):
         print("내용을 입력해주세요.")
 
 
+def select_category():
+    """카테고리를 목록에서 고르거나, 목록에 없으면 직접 입력받습니다."""
+    print()
+    print("카테고리를 선택하세요.")
+    for number, name in enumerate(CATEGORIES, start=1):
+        print(f" {number}. {name}")
+    print(" 0. 직접 입력")
+
+    while True:
+        choice = input("번호: ").strip()
+
+        if choice == "0":
+            return get_non_empty_input("카테고리 이름: ")
+
+        # isdigit()으로 먼저 걸러내면 int() 변환에서 오류가 날 일이 없습니다.
+        if choice.isdigit():
+            index = int(choice)
+            if 1 <= index <= len(CATEGORIES):
+                return CATEGORIES[index - 1]
+
+        print(f"0 또는 1~{len(CATEGORIES)} 사이의 번호를 입력해주세요.")
+
+
 def show_menu():
     """메인 메뉴를 출력합니다."""
     print()
