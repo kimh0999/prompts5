@@ -97,6 +97,40 @@ def create_default_prompts():
     ]
 
 
+def get_non_empty_input(message):
+    """빈 값을 거부하고, 값이 들어올 때까지 다시 물어봅니다."""
+    while True:
+        value = input(message).strip()
+        if value:
+            return value
+        print("값을 입력해주세요.")
+
+
+def get_multiline_input(message):
+    """여러 줄을 입력받습니다. END만 적힌 줄이 나오면 입력이 끝난 것으로 봅니다.
+
+    프롬프트 내용은 대부분 여러 줄이라 input() 한 번으로는 받을 수 없습니다.
+    빈 줄을 종료 신호로 쓰지 않는 이유는, 프롬프트 안에서 문단을 나누는 데
+    빈 줄을 쓰는 경우가 많아 내용이 중간에 잘리기 때문입니다.
+    """
+    while True:
+        print(message)
+        print("(입력을 마치려면 END만 적고 엔터를 누르세요)")
+
+        lines = []
+        while True:
+            line = input("> ")
+            if line.strip() == "END":
+                break
+            lines.append(line)
+
+        # 앞뒤 빈 줄만 정리하고, 문단을 나누는 중간 빈 줄은 그대로 둡니다.
+        content = "\n".join(lines).strip()
+        if content:
+            return content
+        print("내용을 입력해주세요.")
+
+
 def show_menu():
     """메인 메뉴를 출력합니다."""
     print()
