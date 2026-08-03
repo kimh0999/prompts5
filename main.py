@@ -154,6 +154,39 @@ def select_category():
         print(f"0 또는 1~{len(CATEGORIES)} 사이의 번호를 입력해주세요.")
 
 
+def add_prompt(prompts):
+    """새 프롬프트를 입력받아 목록 맨 뒤에 추가합니다."""
+    print()
+    print("[프롬프트 추가]")
+
+    title = get_non_empty_input("제목: ")
+    purpose = get_non_empty_input("목적: ")
+    category = select_category()
+    content = get_multiline_input("내용을 입력하세요.")
+    tags_text = get_non_empty_input("태그 (쉼표로 구분): ")
+    model = get_non_empty_input("대상 모델 (예: ChatGPT, Claude): ")
+
+    # "IT, 뉴스 , 요약" 처럼 공백이 섞여 들어와도 깔끔한 목록이 되도록 정리합니다.
+    tags = [tag.strip() for tag in tags_text.split(",") if tag.strip()]
+
+    # 기존 번호 중 가장 큰 값 다음 번호를 씁니다. 목록이 비어 있으면 1번부터 시작합니다.
+    new_id = max((prompt["id"] for prompt in prompts), default=0) + 1
+
+    prompts.append(
+        {
+            "id": new_id,
+            "title": title,
+            "category": category,
+            "purpose": purpose,
+            "content": content,
+            "tags": tags,
+            "model": model,
+            "favorite": False,
+        }
+    )
+    print(f"프롬프트가 추가되었습니다. (번호: {new_id})")
+
+
 def show_menu():
     """메인 메뉴를 출력합니다."""
     print()
@@ -183,7 +216,9 @@ def main():
             case "0":
                 print("프로그램을 종료합니다.")
                 break
-            case "1" | "2" | "3" | "4" | "5" | "6" | "7":
+            case "1":
+                add_prompt(prompts)
+            case "2" | "3" | "4" | "5" | "6" | "7":
                 print("아직 구현되지 않은 기능입니다.")
             case _:
                 print("메뉴에 있는 번호(0~7)를 입력해주세요.")
