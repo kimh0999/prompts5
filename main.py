@@ -237,6 +237,23 @@ def show_prompt_list(prompts):
     print(f"총 {len(prompts)}개")
 
 
+def show_by_category(prompts):
+    """카테고리를 하나 골라 그 카테고리에 속한 프롬프트만 보여줍니다."""
+    print()
+    print("[카테고리별 조회]")
+    category = select_category()
+
+    found = [prompt for prompt in prompts if prompt["category"] == category]
+
+    print()
+    print(f"카테고리: {category}")
+    if not found:
+        print("해당 카테고리에 등록된 프롬프트가 없습니다.")
+        return
+    print_prompt_table(found)
+    print(f"총 {len(found)}개")
+
+
 def show_menu():
     """메인 메뉴를 출력합니다."""
     print()
@@ -270,7 +287,9 @@ def main():
                 add_prompt(prompts)
             case "2":
                 show_prompt_list(prompts)
-            case "3" | "4" | "5" | "6" | "7":
+            case "3":
+                show_by_category(prompts)
+            case "4" | "5" | "6" | "7":
                 print("아직 구현되지 않은 기능입니다.")
             case _:
                 print("메뉴에 있는 번호(0~7)를 입력해주세요.")
