@@ -1,17 +1,39 @@
 """프롬프트 관리 프로그램
 
-자주 쓰는 생성형 AI 프롬프트를 메모리에 저장하고 조회하는 콘솔 프로그램입니다.
+자주 쓰는 생성형 AI 프롬프트를 JSON 파일에 저장하고 조회하는 콘솔 프로그램입니다.
 Python 3.10 이상에서 실행하세요.
 """
 
+import json
 import unicodedata
+from pathlib import Path
+
+# 저장 파일은 main.py와 같은 폴더에 만듭니다.
+# "prompts.json"처럼 이름만 쓰면 '프로그램을 실행한 폴더'가 기준이 되어,
+# 어느 폴더에서 실행하느냐에 따라 저장 위치가 달라집니다.
+DATA_FILE = Path(__file__).with_name("prompts.json")
+
+# 저장 파일이 깨졌을 때 원본을 옮겨 둘 파일입니다.
+BACKUP_FILE = DATA_FILE.with_name("prompts.broken.json")
+
+# 프롬프트 하나가 가져야 하는 항목과 그 값의 자료형입니다.
+# tags는 '문자열 목록'이라 자료형 하나로 표현할 수 없어 아래 표에 넣지 않고 따로 확인합니다.
+PROMPT_FORMAT = {
+    "id": int,
+    "title": str,
+    "category": str,
+    "purpose": str,
+    "content": str,
+    "model": str,
+    "favorite": bool,
+}
 
 # 결과물의 형태가 아니라 '사용 목적'을 기준으로 나눈 분류입니다.
 CATEGORIES = [
+    "작성·콘텐츠",
     "요약·분석",
     "개발·코딩",
     "기획·문서화",
-    "콘텐츠 제작",
     "업무 자동화",
     "학습·교육",
     "취업·커리어",
@@ -99,6 +121,95 @@ def create_default_prompts():
     ]
 
 
+def save_prompts(prompts):
+    """프롬프트 목록을 JSON 파일에 저장합니다.
+
+    프롬프트가 추가되거나 즐겨찾기가 바뀔 때마다 바로 호출합니다.
+    """
+    try:
+        with open(DATA_FILE, "w", encoding="utf-8") as file:
+            # ensure_ascii=False: 한글이 \uXXXX 형태로 바뀌지 않고 그대로 저장됩니다.
+            # indent=2: 파일을 직접 열어봐도 읽을 수 있게 줄을 나눠 씁니다.
+            json.dump(prompts, file, ensure_ascii=False, indent=2)
+    except OSError as error:
+        # 저장에 실패해도 프로그램은 계속 쓸 수 있어야 하므로 알리기만 합니다.
+        print(f"저장에 실패했습니다: {error}")
+
+
+def has_prompt_format(prompt):
+    """프롬프트 하나가 올바른 항목과 자료형을 갖췄는지 확인합니다.
+
+    항목 이름만 보고 값의 자료형을 확인하지 않으면, 예를 들어 id가 문자열이거나
+    tags가 문자열인 파일도 통과해 버립니다. 그러면 목록을 출력하거나 프롬프트를
+    추가할 때 프로그램이 중단됩니다.
+    """
+    if not isinstance(prompt, dict):
+        return False
+
+    for key, expected_type in PROMPT_FORMAT.items():
+        value = prompt.get(key)
+        if not isinstance(value, expected_type):
+            return False
+        # 파이썬에서 True/False는 정수로도 취급되므로, id가 True인 경우를 걸러냅니다.
+        if expected_type is int and isinstance(value, bool):
+            return False
+
+    tags = prompt.get("tags")
+    return isinstance(tags, list) and all(isinstance(tag, str) for tag in tags)
+
+
+def has_prompt_list_format(data):
+    """읽어온 데이터가 프롬프트 목록의 형태를 갖췄는지 확인합니다."""
+    return isinstance(data, list) and all(has_prompt_format(item) for item in data)
+
+
+def load_prompts():
+    """저장 파일에서 프롬프트를 읽어옵니다.
+
+    파일이 없으면 기본 프롬프트로 시작하면서 저장 파일을 새로 만듭니다.
+    파일이 깨져 있으면 원본을 백업한 뒤 기본 프롬프트로 새로 시작합니다.
+    """
+    try:
+        with open(DATA_FILE, "r", encoding="utf-8") as file:
+            prompts = json.load(file)
+    except FileNotFoundError:
+        prompts = create_default_prompts()
+        print(f"저장 파일이 없어 기본 프롬프트 {len(prompts)}개로 시작합니다.")
+        save_prompts(prompts)
+        return prompts
+    except ValueError:
+        # JSONDecodeError(문법 오류)와 UnicodeDecodeError(인코딩 오류) 모두
+        # ValueError의 한 종류라서 여기서 함께 걸립니다.
+        return start_with_defaults("파일 내용을 읽을 수 없습니다.")
+
+    if not has_prompt_list_format(prompts):
+        return start_with_defaults("내용이 프롬프트 목록의 형식과 맞지 않습니다.")
+
+    print(f"'{DATA_FILE.name}'에서 프롬프트 {len(prompts)}개를 불러왔습니다.")
+    return prompts
+
+
+def start_with_defaults(reason):
+    """저장 파일이 깨졌을 때, 원본을 백업해 두고 기본 프롬프트로 새로 시작합니다.
+
+    깨진 파일을 그냥 두면 다음 실행에서도 같은 경고가 반복됩니다.
+    그렇다고 바로 덮어쓰면 원본을 되살릴 수 없으므로, 이름을 바꿔 남겨 둡니다.
+    """
+    print(f"'{DATA_FILE.name}' {reason}")
+
+    try:
+        # replace()는 파일 이름을 바꿉니다. 같은 이름의 이전 백업이 있으면 덮어씁니다.
+        DATA_FILE.replace(BACKUP_FILE)
+        print(f"깨진 파일은 '{BACKUP_FILE.name}'(으)로 옮겨 두었습니다.")
+    except OSError as error:
+        print(f"백업에 실패했습니다: {error}")
+
+    prompts = create_default_prompts()
+    print(f"기본 프롬프트 {len(prompts)}개로 새로 시작합니다.")
+    save_prompts(prompts)
+    return prompts
+
+
 def get_non_empty_input(message):
     """빈 값을 거부하고, 값이 들어올 때까지 다시 물어봅니다."""
     while True:
@@ -134,18 +245,20 @@ def get_multiline_input(message):
 
 
 def select_category():
-    """카테고리를 목록에서 고르거나, 목록에 없으면 직접 입력받습니다."""
+    """정해진 카테고리 목록에서 하나를 고르게 합니다.
+
+    직접 입력을 받지 않는 이유는, 같은 분류가 '데이터 분석', '데이터분석',
+    '데이터·분석'처럼 여러 개로 나뉘는 것을 막기 위해서입니다. 또 직접 만든
+    카테고리는 이 목록에 나타나지 않아, 나중에 조회하려면 이름을 정확히
+    기억해서 다시 입력해야 합니다.
+    """
     print()
     print("카테고리를 선택하세요.")
     for number, name in enumerate(CATEGORIES, start=1):
         print(f" {number}. {name}")
-    print(" 0. 직접 입력")
 
     while True:
         choice = input("번호: ").strip()
-
-        if choice == "0":
-            return get_non_empty_input("카테고리 이름: ")
 
         # isdecimal()로 먼저 걸러내면 int() 변환에서 오류가 날 일이 없습니다.
         # isdigit()은 '²' 같은 문자도 참으로 보는데 int()는 이를 변환하지 못합니다.
@@ -154,7 +267,7 @@ def select_category():
             if 1 <= index <= len(CATEGORIES):
                 return CATEGORIES[index - 1]
 
-        print(f"0 또는 1~{len(CATEGORIES)} 사이의 번호를 입력해주세요.")
+        print(f"1~{len(CATEGORIES)} 사이의 번호를 입력해주세요.")
 
 
 def add_prompt(prompts):
@@ -188,6 +301,7 @@ def add_prompt(prompts):
         }
     )
     print(f"프롬프트가 추가되었습니다. (번호: {new_id})")
+    save_prompts(prompts)
 
 
 def text_width(text):
@@ -345,6 +459,7 @@ def toggle_favorite(prompts):
 
     state = "추가" if prompt["favorite"] else "해제"
     print(f"{prompt['id']}번 '{prompt['title']}' 즐겨찾기를 {state}했습니다.")
+    save_prompts(prompts)
 
 
 def show_favorites(prompts):
@@ -379,8 +494,7 @@ def show_menu():
 
 
 def main():
-    prompts = create_default_prompts()
-    print(f"기본 프롬프트 {len(prompts)}개를 불러왔습니다.")
+    prompts = load_prompts()
 
     while True:
         show_menu()
