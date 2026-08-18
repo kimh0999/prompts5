@@ -5,8 +5,24 @@ Python 3.10 이상에서 실행하세요.
 """
 
 import json
+import os
 import unicodedata
 from pathlib import Path
+
+# 화면에 그리는 구분선과 표의 가로 폭입니다.
+SCREEN_WIDTH = 60
+
+# 메뉴에 표시할 번호와 이름입니다. 화면에는 두 줄로 나눠 출력합니다.
+MENU_ITEMS = [
+    ("1", "프롬프트 추가"),
+    ("2", "전체 목록"),
+    ("3", "카테고리별 조회"),
+    ("4", "키워드 검색"),
+    ("5", "상세 보기"),
+    ("6", "즐겨찾기 변경"),
+    ("7", "즐겨찾기 목록"),
+    ("0", "종료"),
+]
 
 # 저장 파일은 main.py와 같은 폴더에 만듭니다.
 # "prompts.json"처럼 이름만 쓰면 '프로그램을 실행한 폴더'가 기준이 되어,
@@ -133,7 +149,7 @@ def save_prompts(prompts):
             json.dump(prompts, file, ensure_ascii=False, indent=2)
     except OSError as error:
         # 저장에 실패해도 프로그램은 계속 쓸 수 있어야 하므로 알리기만 합니다.
-        print(f"저장에 실패했습니다: {error}")
+        print(f"  저장에 실패했습니다: {error}")
 
 
 def has_prompt_format(prompt):
@@ -174,7 +190,7 @@ def load_prompts():
             prompts = json.load(file)
     except FileNotFoundError:
         prompts = create_default_prompts()
-        print(f"저장 파일이 없어 기본 프롬프트 {len(prompts)}개로 시작합니다.")
+        print(f"  저장 파일이 없어 기본 프롬프트 {len(prompts)}개로 시작합니다.")
         save_prompts(prompts)
         return prompts
     except ValueError:
@@ -185,7 +201,7 @@ def load_prompts():
     if not has_prompt_list_format(prompts):
         return start_with_defaults("내용이 프롬프트 목록의 형식과 맞지 않습니다.")
 
-    print(f"'{DATA_FILE.name}'에서 프롬프트 {len(prompts)}개를 불러왔습니다.")
+    print(f"  '{DATA_FILE.name}'에서 프롬프트 {len(prompts)}개를 불러왔습니다.")
     return prompts
 
 
@@ -195,17 +211,17 @@ def start_with_defaults(reason):
     깨진 파일을 그냥 두면 다음 실행에서도 같은 경고가 반복됩니다.
     그렇다고 바로 덮어쓰면 원본을 되살릴 수 없으므로, 이름을 바꿔 남겨 둡니다.
     """
-    print(f"'{DATA_FILE.name}' {reason}")
+    print(f"  '{DATA_FILE.name}' {reason}")
 
     try:
         # replace()는 파일 이름을 바꿉니다. 같은 이름의 이전 백업이 있으면 덮어씁니다.
         DATA_FILE.replace(BACKUP_FILE)
-        print(f"깨진 파일은 '{BACKUP_FILE.name}'(으)로 옮겨 두었습니다.")
+        print(f"  깨진 파일은 '{BACKUP_FILE.name}'(으)로 옮겨 두었습니다.")
     except OSError as error:
-        print(f"백업에 실패했습니다: {error}")
+        print(f"  백업에 실패했습니다: {error}")
 
     prompts = create_default_prompts()
-    print(f"기본 프롬프트 {len(prompts)}개로 새로 시작합니다.")
+    print(f"  기본 프롬프트 {len(prompts)}개로 새로 시작합니다.")
     save_prompts(prompts)
     return prompts
 
@@ -216,7 +232,7 @@ def get_non_empty_input(message):
         value = input(message).strip()
         if value:
             return value
-        print("값을 입력해주세요.")
+        print("  값을 입력해주세요.")
 
 
 def get_multiline_input(message):
@@ -227,12 +243,13 @@ def get_multiline_input(message):
     빈 줄을 쓰는 경우가 많아 내용이 중간에 잘리기 때문입니다.
     """
     while True:
+        print()
         print(message)
-        print("(입력을 마치려면 END만 적고 엔터를 누르세요)")
+        print("  (입력을 마치려면 END만 적고 엔터를 누르세요)")
 
         lines = []
         while True:
-            line = input("> ")
+            line = input("  > ")
             if line.strip() == "END":
                 break
             lines.append(line)
@@ -241,7 +258,7 @@ def get_multiline_input(message):
         content = "\n".join(lines).strip()
         if content:
             return content
-        print("내용을 입력해주세요.")
+        print("  내용을 입력해주세요.")
 
 
 def select_category():
@@ -253,12 +270,13 @@ def select_category():
     기억해서 다시 입력해야 합니다.
     """
     print()
-    print("카테고리를 선택하세요.")
-    for number, name in enumerate(CATEGORIES, start=1):
-        print(f" {number}. {name}")
+    print("  카테고리를 선택하세요.")
+    print("  " + "-" * SCREEN_WIDTH)
+    print_two_columns([(str(number), name) for number, name in enumerate(CATEGORIES, start=1)])
+    print("  " + "-" * SCREEN_WIDTH)
 
     while True:
-        choice = input("번호: ").strip()
+        choice = input("  번호 > ").strip()
 
         # isdecimal()로 먼저 걸러내면 int() 변환에서 오류가 날 일이 없습니다.
         # isdigit()은 '²' 같은 문자도 참으로 보는데 int()는 이를 변환하지 못합니다.
@@ -267,20 +285,19 @@ def select_category():
             if 1 <= index <= len(CATEGORIES):
                 return CATEGORIES[index - 1]
 
-        print(f"1~{len(CATEGORIES)} 사이의 번호를 입력해주세요.")
+        print(f"  1~{len(CATEGORIES)} 사이의 번호를 입력해주세요.")
 
 
 def add_prompt(prompts):
     """새 프롬프트를 입력받아 목록 맨 뒤에 추가합니다."""
-    print()
-    print("[프롬프트 추가]")
+    print_section("프롬프트 추가")
 
-    title = get_non_empty_input("제목: ")
-    purpose = get_non_empty_input("목적: ")
+    title = get_non_empty_input("  제목 > ")
+    purpose = get_non_empty_input("  목적 > ")
     category = select_category()
-    content = get_multiline_input("내용을 입력하세요.")
-    tags_text = get_non_empty_input("태그 (쉼표로 구분): ")
-    model = get_non_empty_input("대상 모델 (예: ChatGPT, Claude): ")
+    content = get_multiline_input("  내용을 입력하세요.")
+    tags_text = get_non_empty_input("  태그 (쉼표로 구분) > ")
+    model = get_non_empty_input("  대상 모델 (예: ChatGPT, Claude) > ")
 
     # "IT, 뉴스 , 요약" 처럼 공백이 섞여 들어와도 깔끔한 목록이 되도록 정리합니다.
     tags = [tag.strip() for tag in tags_text.split(",") if tag.strip()]
@@ -300,8 +317,23 @@ def add_prompt(prompts):
             "favorite": False,
         }
     )
-    print(f"프롬프트가 추가되었습니다. (번호: {new_id})")
+    print()
+    print(f"  프롬프트가 추가되었습니다. (번호: {new_id})")
     save_prompts(prompts)
+
+
+def clear_screen():
+    """이전 화면을 지웁니다.
+
+    결과를 다 읽고 메뉴로 돌아갈 때만 호출합니다. 결과가 나오자마자 지우면
+    방금 본 내용을 다시 볼 수 없기 때문입니다.
+    """
+    os.system("cls" if os.name == "nt" else "clear")
+
+
+def wait_for_enter():
+    """화면이 곧바로 넘어가지 않도록, 사용자가 다 읽을 때까지 기다립니다."""
+    input("\n  계속하려면 Enter를 누르세요...")
 
 
 def text_width(text):
@@ -325,55 +357,78 @@ def fit(text, width):
     return cut + "..." + " " * (width - used - 3)
 
 
+def print_section(title, note=""):
+    """화면 맨 위에 제목 줄을 출력합니다. note는 오른쪽 끝에 붙습니다."""
+    print()
+    if note:
+        print(f"  {fit(title, SCREEN_WIDTH - text_width(note))}{note}")
+    else:
+        # note가 없으면 굳이 공백으로 채우지 않습니다.
+        print(f"  {title}")
+    print("  " + "=" * SCREEN_WIDTH)
+
+
+def print_two_columns(items):
+    """[번호] 이름 형태의 항목을 두 줄로 나눠 출력합니다.
+
+    메뉴와 카테고리 목록이 세로로 길어지면 화면을 많이 차지해서,
+    절반씩 나눠 좌우로 배치합니다.
+    """
+    half = (len(items) + 1) // 2
+    for left, right in zip(items[:half], items[half:]):
+        print(f"  [{left[0]}] {fit(left[1], 22)}[{right[0]}] {right[1]}")
+
+
 def print_prompt_table(items):
     """프롬프트 목록을 표 형태로 출력합니다.
 
     전체 목록, 카테고리별 조회, 검색, 즐겨찾기 목록이 모두 같은 형식을 쓰기 때문에
     함수로 분리했습니다. 이렇게 하지 않으면 같은 코드를 네 번 쓰게 됩니다.
+
+    즐겨찾기 표시로 ★ 같은 기호를 쓰지 않는 이유는, 이런 문자가 터미널에 따라
+    한 칸으로도 두 칸으로도 그려져 표가 어긋나기 때문입니다.
     """
-    print(f"{fit('번호', 4)} | {fit('즐겨찾기', 8)} | {fit('제목', 30)} | {fit('카테고리', 14)} | 대상 모델")
-    print("-" * 80)
+    print(f"  {fit('번호', 4)}   {fit('제목', 26)} {fit('카테고리', 12)} 대상 모델")
+    print("  " + "-" * SCREEN_WIDTH)
     for item in items:
-        favorite = "[*]" if item["favorite"] else "[ ]"
+        favorite = "*" if item["favorite"] else " "
         print(
-            f"{str(item['id']).rjust(4)} | {fit(favorite, 8)} | "
-            f"{fit(item['title'], 30)} | {fit(item['category'], 14)} | {item['model']}"
+            f"  {str(item['id']).rjust(4)} {favorite} "
+            f"{fit(item['title'], 26)} {fit(item['category'], 12)} {item['model']}"
         )
+    print("  " + "-" * SCREEN_WIDTH)
+    print("  * 표시는 즐겨찾기입니다.")
 
 
 def show_prompt_list(prompts):
     """등록된 프롬프트 전체를 표로 보여줍니다."""
-    print()
-    print("[전체 목록]")
     if not prompts:
-        print("등록된 프롬프트가 없습니다.")
+        print_section("전체 목록")
+        print("  등록된 프롬프트가 없습니다.")
         return
+    print_section("전체 목록", f"총 {len(prompts)}개")
     print_prompt_table(prompts)
-    print(f"총 {len(prompts)}개")
 
 
 def show_by_category(prompts):
     """카테고리를 하나 골라 그 카테고리에 속한 프롬프트만 보여줍니다."""
-    print()
-    print("[카테고리별 조회]")
+    print_section("카테고리별 조회")
     category = select_category()
 
     found = [prompt for prompt in prompts if prompt["category"] == category]
 
-    print()
-    print(f"카테고리: {category}")
     if not found:
-        print("해당 카테고리에 등록된 프롬프트가 없습니다.")
+        print_section(category)
+        print("  해당 카테고리에 등록된 프롬프트가 없습니다.")
         return
+    print_section(category, f"총 {len(found)}개")
     print_prompt_table(found)
-    print(f"총 {len(found)}개")
 
 
 def search_prompts(prompts):
     """제목, 목적, 내용, 태그에서 키워드를 찾습니다. 대소문자는 구분하지 않습니다."""
-    print()
-    print("[키워드 검색]")
-    keyword = get_non_empty_input("검색어: ")
+    print_section("키워드 검색")
+    keyword = get_non_empty_input("  검색어 > ")
     lowered = keyword.lower()
 
     found = []
@@ -390,13 +445,12 @@ def search_prompts(prompts):
         if lowered in target:
             found.append(prompt)
 
-    print()
-    print(f"검색어: {keyword}")
     if not found:
-        print("검색 결과가 없습니다.")
+        print_section(f"'{keyword}' 검색 결과")
+        print("  검색 결과가 없습니다.")
         return
+    print_section(f"'{keyword}' 검색 결과", f"총 {len(found)}개")
     print_prompt_table(found)
-    print(f"총 {len(found)}개")
 
 
 def find_prompt_by_id(prompts, message):
@@ -406,13 +460,13 @@ def find_prompt_by_id(prompts, message):
     함수로 분리했습니다.
     """
     if not prompts:
-        print("등록된 프롬프트가 없습니다.")
+        print("  등록된 프롬프트가 없습니다.")
         return None
 
     number = input(message).strip()
     # isdigit()이 아니라 isdecimal()을 쓰는 이유는 select_category()의 설명과 같습니다.
     if not number.isdecimal():
-        print("숫자로 된 번호를 입력해주세요.")
+        print("  숫자로 된 번호를 입력해주세요.")
         return None
 
     prompt_id = int(number)
@@ -420,37 +474,36 @@ def find_prompt_by_id(prompts, message):
         if prompt["id"] == prompt_id:
             return prompt
 
-    print(f"{prompt_id}번 프롬프트가 없습니다.")
+    print(f"  {prompt_id}번 프롬프트가 없습니다.")
     return None
 
 
 def show_prompt_detail(prompts):
     """프롬프트 하나의 모든 정보를 보여줍니다."""
-    print()
-    print("[프롬프트 상세 보기]")
-    prompt = find_prompt_by_id(prompts, "번호: ")
+    print_section("프롬프트 상세 보기")
+    prompt = find_prompt_by_id(prompts, "  번호 > ")
     if prompt is None:
         return
 
+    print_section(prompt["title"], f"{prompt['id']}번")
+    print(f"  {fit('카테고리', 10)}{prompt['category']}")
+    print(f"  {fit('목적', 10)}{prompt['purpose']}")
+    print(f"  {fit('대상 모델', 10)}{prompt['model']}")
+    print(f"  {fit('태그', 10)}{', '.join(prompt['tags'])}")
+    print(f"  {fit('즐겨찾기', 10)}{'예' if prompt['favorite'] else '아니오'}")
+    print("  " + "-" * SCREEN_WIDTH)
     print()
-    print("-" * 60)
-    print(f"{fit('제목', 9)}: {prompt['title']}")
-    print(f"{fit('카테고리', 9)}: {prompt['category']}")
-    print(f"{fit('목적', 9)}: {prompt['purpose']}")
-    print(f"{fit('대상 모델', 9)}: {prompt['model']}")
-    print(f"{fit('태그', 9)}: {', '.join(prompt['tags'])}")
-    print(f"{fit('즐겨찾기', 9)}: {'예' if prompt['favorite'] else '아니오'}")
-    print("-" * 60)
-    print("프롬프트 내용:")
+    # 내용은 들여쓰기 없이 그대로 출력합니다.
+    # 앞에 공백을 붙이면 복사해서 붙여넣을 때 그 공백까지 따라갑니다.
     print(prompt["content"])
-    print("-" * 60)
+    print()
+    print("  " + "-" * SCREEN_WIDTH)
 
 
 def toggle_favorite(prompts):
     """즐겨찾기를 켜거나 끕니다. 이미 켜져 있으면 끄고, 꺼져 있으면 켭니다."""
-    print()
-    print("[즐겨찾기 추가·해제]")
-    prompt = find_prompt_by_id(prompts, "번호: ")
+    print_section("즐겨찾기 추가·해제")
+    prompt = find_prompt_by_id(prompts, "  번호 > ")
     if prompt is None:
         return
 
@@ -458,51 +511,46 @@ def toggle_favorite(prompts):
     prompt["favorite"] = not prompt["favorite"]
 
     state = "추가" if prompt["favorite"] else "해제"
-    print(f"{prompt['id']}번 '{prompt['title']}' 즐겨찾기를 {state}했습니다.")
+    print(f"  {prompt['id']}번 '{prompt['title']}' 즐겨찾기를 {state}했습니다.")
     save_prompts(prompts)
 
 
 def show_favorites(prompts):
     """즐겨찾기로 표시한 프롬프트만 모아서 보여줍니다."""
-    print()
-    print("[즐겨찾기 목록]")
-
     found = [prompt for prompt in prompts if prompt["favorite"]]
 
     if not found:
-        print("즐겨찾기한 프롬프트가 없습니다.")
+        print_section("즐겨찾기 목록")
+        print("  즐겨찾기한 프롬프트가 없습니다.")
         return
+    print_section("즐겨찾기 목록", f"총 {len(found)}개")
     print_prompt_table(found)
-    print(f"총 {len(found)}개")
 
 
-def show_menu():
+def show_menu(prompts):
     """메인 메뉴를 출력합니다."""
+    title = "프롬프트 관리 프로그램"
     print()
-    print("=" * 40)
-    print(" 프롬프트 관리 프로그램")
-    print("=" * 40)
-    print(" 1. 프롬프트 추가")
-    print(" 2. 전체 목록 보기")
-    print(" 3. 카테고리별 조회")
-    print(" 4. 키워드 검색")
-    print(" 5. 프롬프트 상세 보기")
-    print(" 6. 즐겨찾기 추가·해제")
-    print(" 7. 즐겨찾기 목록 보기")
-    print(" 0. 프로그램 종료")
-    print("=" * 40)
+    print("  " + "=" * SCREEN_WIDTH)
+    print("  " + " " * ((SCREEN_WIDTH - text_width(title)) // 2) + title)
+    print("  " + "=" * SCREEN_WIDTH)
+    print_two_columns(MENU_ITEMS)
+    print("  " + "-" * SCREEN_WIDTH)
+    print(f"  등록된 프롬프트 {len(prompts)}개")
 
 
 def main():
     prompts = load_prompts()
+    wait_for_enter()
 
     while True:
-        show_menu()
-        choice = input("번호를 선택하세요: ").strip()
+        clear_screen()
+        show_menu(prompts)
+        choice = input("\n  선택 > ").strip()
 
         match choice:
             case "0":
-                print("프로그램을 종료합니다.")
+                print("\n  프로그램을 종료합니다.")
                 break
             case "1":
                 add_prompt(prompts)
@@ -519,7 +567,10 @@ def main():
             case "7":
                 show_favorites(prompts)
             case _:
-                print("메뉴에 있는 번호(0~7)를 입력해주세요.")
+                print("\n  메뉴에 있는 번호(0~7)를 입력해주세요.")
+
+        # 결과를 다 읽은 뒤에 화면을 지우고 메뉴로 돌아갑니다.
+        wait_for_enter()
 
 
 if __name__ == "__main__":
@@ -528,4 +579,4 @@ if __name__ == "__main__":
     except (KeyboardInterrupt, EOFError):
         # Ctrl+C를 누르거나 입력이 끊겼을 때 오류 화면 대신 조용히 끝냅니다.
         print()
-        print("프로그램을 종료합니다.")
+        print("  프로그램을 종료합니다.")
